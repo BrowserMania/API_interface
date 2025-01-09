@@ -1,0 +1,36 @@
+[package]
+name = "API"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Framework web Actix
+actix-web = "4.0.1"
+actix-cors = "0.6" # Ajout pour gérer CORS
+
+# Sérialisation/desérialisation avec Serde
+serde = { version = "1.0", features = ["derive"] }
+
+# SQLx pour interaction avec MySQL
+sqlx = { version = "0.6", features = ["mysql", "runtime-actix-native-tls", "chrono"] }
+
+# Gestion des variables d'environnement
+dotenv = "0.15"
+
+# Manipulation des dates/temps avec sérialisation supportée
+chrono = { version = "0.4", features = ["serde"] }
+
+# Hashage des mots de passe
+bcrypt = "0.11" # Utilisation de la dernière version stable
+
+# Manipulation du temps avec support de Serde
+time = { version = "0.3", features = ["serde"] }
+
+# Gestion des JWT (JSON Web Tokens)
+jsonwebtoken = "8.2.0"
+serde_json = "1.0"
+
+
+[[bin]]
+name = "api"
+path = "src/main.rs"
