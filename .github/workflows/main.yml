@@ -7,9 +7,8 @@ on:
 
 jobs:
  semgrep_scan_rust:
-    name: semgrep/ci
+    name: semgrep_rust
     runs-on: self-hosted
-    continue-on-error: true
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
@@ -21,12 +20,9 @@ jobs:
         run: source /home/runner-admin/semgrep/bin/activate
       - name: Analyse semgrep 1
         run: semgrep --config "p/rust" .
-      - name: Clippy-analyse
-        run: cargo clippy
-      - name: cargo-audit
-        run: cargo audit
  Semgrep_all:
     needs: semgrep_scan_rust
+    name: semgrep_all
     runs-on: self-hosted
     steps:
       - name: Checkout repo
@@ -35,4 +31,18 @@ jobs:
         run: source /home/runner-admin/semgrep/bin/activate
       - name: test all
         run: semgrep ci --config auto
+ clippy:
+    name: clippy-code
+    runs-on: self-hosted
+    continue-on-error: true
+    steps:
+      - name: Clippy-analyse
+        run: cargo clippy
+ audit:
+    name: audit-code
+    runs-on: self-hosted
+    continue-on-error: true
+    steps:
+      - name: cargo-audit
+        run: cargo audit
  
