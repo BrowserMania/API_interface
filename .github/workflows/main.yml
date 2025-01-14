@@ -19,6 +19,7 @@ jobs:
       - name: cargo-audit
         run: cargo audit
  Semgrep_all:
+    needs: semgrep_scan_rust
     runs-on: self-hosted
     steps:
       - name: Checkout repo
