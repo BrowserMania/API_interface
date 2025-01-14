@@ -16,6 +16,8 @@ jobs:
         run: source /home/runner-admin/semgrep/bin/activate
       - name: Analyse semgrep 1
         run: semgrep --config "p/rust" .
+      - name: Clippy-analyse
+        run: cargo clippy --all-targets --all-features -- -D warnings
       - name: cargo-audit
         run: cargo audit
  Semgrep_all:
