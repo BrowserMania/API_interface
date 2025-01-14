@@ -1,0 +1,16 @@
+name: analyse-semgrep
+
+on:
+  push:
+    branches:
+    - 'main'
+
+jobs:
+  semgrep_scan:
+    name: semgrep/ci
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Analyse semgrep
+        run: semgrep --config "p/rust" .    
