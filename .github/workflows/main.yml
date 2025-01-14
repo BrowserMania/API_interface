@@ -13,4 +13,4 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
       - name: Analyse semgrep
-        run: semgrep --config "p/rust" .    
+        run: source /home/runner-admin/semgrep/bin/activate | semgrep --config "p/rust" .    
