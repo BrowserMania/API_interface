@@ -6,7 +6,7 @@ on:
     - 'main'
 
 jobs:
-  semgrep_scan:
+ semgrep_scan_rust:
     name: semgrep/ci
     runs-on: self-hosted
     steps:
@@ -15,6 +15,16 @@ jobs:
       - name : change source
         run: source /home/runner-admin/semgrep/bin/activate
       - name: Analyse semgrep 1
-        run: semgrep --config "p/rust" .  
+        run: semgrep --config "p/rust" .
+      - name: cargo audit
+        run: cargo audit
+ Semgrep_all:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name : change source
+        run: source /home/runner-admin/semgrep/bin/activate
       - name: test all
         run: semgrep ci --config auto
+ 
