@@ -16,7 +16,7 @@ jobs:
         run: source /home/runner-admin/semgrep/bin/activate
       - name: Analyse semgrep 1
         run: semgrep --config "p/rust" .
-      - name: cargo audit
+      - name: cargo-audit
         run: cargo audit
  Semgrep_all:
     runs-on: self-hosted
