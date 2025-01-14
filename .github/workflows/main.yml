@@ -32,6 +32,7 @@ jobs:
       - name: test all
         run: semgrep ci --config auto
  clippy:
+    needs: Semgrep_all
     name: clippy-code
     runs-on: self-hosted
     continue-on-error: true
@@ -39,6 +40,7 @@ jobs:
       - name: Clippy-analyse
         run: cargo clippy
  audit:
+    needs: clippy
     name: audit-code
     runs-on: self-hosted
     continue-on-error: true
