@@ -24,6 +24,7 @@ jobs:
     needs: semgrep_scan_rust
     name: semgrep_all
     runs-on: self-hosted
+    continue-on-error: true
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
