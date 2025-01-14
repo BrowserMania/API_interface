@@ -12,5 +12,9 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
-      - name: Analyse semgrep
-        run: source /home/runner-admin/semgrep/bin/activate | semgrep --config "p/rust" .    
+      - name : change source
+        run: source /home/runner-admin/semgrep/bin/activate
+      - name: Analyse semgrep 1
+        run: semgrep --config "p/rust" .  
+      - name: Analyse semgrep 2
+        run: semgrep --config "p/owasp-top-ten" --lang rust .
