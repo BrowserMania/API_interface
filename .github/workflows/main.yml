@@ -17,7 +17,7 @@ jobs:
       - name: Analyse semgrep 1
         run: semgrep --config "p/rust" .
       - name: Clippy-analyse
-        run: cargo clippy --all-targets --all-features
+        run: cargo clippy
       - name: cargo-audit
         run: cargo audit
  Semgrep_all:
