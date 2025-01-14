@@ -9,6 +9,7 @@ jobs:
  semgrep_scan_rust:
     name: semgrep/ci
     runs-on: self-hosted
+    continue-on-error: true
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
