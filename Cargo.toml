@@ -12,10 +12,10 @@ actix-cors = "0.6" # Ajout pour gérer CORS
 serde = { version = "1.0", features = ["derive"] }
 
 # SQLx pour interaction avec MySQL
-sqlx = { version = "0.6", features = ["mysql", "runtime-actix-native-tls", "chrono"] }
+sqlx = { version = "0.8.3", features = ["mysql", "runtime-tokio-native-tls", "chrono"] }
 
 # Gestion des variables d'environnement
-dotenv = "0.15"
+dotenvy = "0.15"
 
 # Manipulation des dates/temps avec sérialisation supportée
 chrono = { version = "0.4", features = ["serde"] }
@@ -29,6 +29,7 @@ time = { version = "0.3", features = ["serde"] }
 # Gestion des JWT (JSON Web Tokens)
 jsonwebtoken = "8.2.0"
 serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
 
 
 [[bin]]

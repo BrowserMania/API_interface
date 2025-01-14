@@ -1,5 +1,6 @@
-use dotenv::dotenv;
 use std::env;
+use dotenvy::dotenv;
+
 
 /// Structure pour stocker la configuration de l'application
 #[derive(Debug)]
