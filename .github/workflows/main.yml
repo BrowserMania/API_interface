@@ -32,20 +32,20 @@ jobs:
         run: source /home/runner-admin/semgrep/bin/activate
       - name: test all
         run: semgrep ci --config auto
- clippy:
-    needs: Semgrep_all
-    name: clippy-code
-    runs-on: self-hosted
-    continue-on-error: true
-    steps:
-      - name: Clippy-analyse
-        run: cargo clippy
  audit:
-    needs: clippy
+    needs: Semgrep_all
     name: audit-code
     runs-on: self-hosted
     continue-on-error: true
     steps:
       - name: cargo-audit
         run: cargo audit
+ clippy:
+    needs: audit
+    name: clippy-code
+    runs-on: self-hosted
+    continue-on-error: true
+    steps:
+      - name: Clippy-analyse
+        run: cargo clippy
  
