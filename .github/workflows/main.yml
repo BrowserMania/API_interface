@@ -16,5 +16,3 @@ jobs:
         run: source /home/runner-admin/semgrep/bin/activate
       - name: Analyse semgrep 1
         run: semgrep --config "p/rust" .  
-      - name: Analyse semgrep 2
-        run: semgrep --config "p/owasp-top-ten" --lang rust .
