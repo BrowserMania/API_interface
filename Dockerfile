@@ -1,41 +1,37 @@
-# Étape 1 : Construire l'application
-FROM rust:1.72-slim as builder
+# Étape 1 : Construction du binaire Rust
+FROM rust:1.72 AS builder
 
-# Définir le répertoire de travail
-WORKDIR /usr/src/app
+# Crée un utilisateur non-root
+RUN useradd -m -s /bin/bash appuser
 
-# Copier les fichiers Cargo.toml et Cargo.lock
-COPY Cargo.toml Cargo.lock ./
+# Définit le répertoire de travail
+WORKDIR /app
 
-# Précharger les dépendances
-RUN apt-get update && apt-get install -y libmariadb-dev && cargo fetch
-
-# Copier le reste du projet
+# Copie les fichiers du projet dans l'image
 COPY . .
 
-# Construire l'application en mode release
+# Compile le projet en mode release
 RUN cargo build --release
 
-# Étape 2 : Préparer l'image finale
+# Étape 2 : Création de l'image finale
 FROM debian:bullseye-slim
 
-# Installer les dépendances nécessaires
+# Installation des dépendances nécessaires pour exécuter le binaire
 RUN apt-get update && apt-get install -y \
     libssl-dev \
-    libmariadb3 \
     && rm -rf /var/lib/apt/lists/*
 
-# Définir le répertoire de travail
-WORKDIR /usr/src/app
+# Copie du binaire compilé depuis l'étape précédente
+COPY --from=builder /app/target/release/api /usr/local/bin/api
 
-# Copier le fichier binaire depuis l'étape de build
-COPY --from=builder /usr/src/app/target/release/api /usr/src/app/
+# Définit un utilisateur non-root pour exécuter le binaire
+USER appuser
 
-# Copier le fichier `.env`
-COPY .env /usr/src/app/.env
+# Définit le répertoire de travail
+WORKDIR /home/appuser
 
-# Exposer le port d'écoute (par défaut 8080 pour votre application)
+# Expose le port utilisé par l'application
 EXPOSE 8080
 
-# Définir le point d'entrée
-CMD ["./api"]
+# Commande par défaut pour démarrer l'application
+CMD ["api"]
