@@ -1,42 +1,33 @@
-mod db;
-mod models;
-mod routes;
-mod utils;
-mod config;
+mod delete;
+mod info;
+mod logs;
+mod policy;
+mod spawner;
+use std::{
+    env,
+    //    os
+};
+use anyhow;
 
-use actix_cors::Cors; // Importation pour CORS
-use actix_web::{http, App, HttpServer, web};
-use config::Config;
-use db::init_pool;
-
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    // Charger la configuration depuis .env
-    let config = Config::from_env().expect("Erreur lors du chargement de la configuration");
-
-    println!("Connexion à la base de données...");
-    // Initialiser le pool de connexions
-    let pool = init_pool().await.expect("Impossible de se connecter à la base de données");
-
-    println!("Démarrage du serveur sur http://127.0.0.1:8080");
-    // Démarrer le serveur Actix-web
-    HttpServer::new(move || {
-        App::new()
-            .app_data(web::Data::new(pool.clone())) // Partager le pool de connexions avec les handlers
-            .wrap(
-                Cors::default() // Configuration de CORS
-                    .allowed_origin("http://localhost:3000") // Autoriser les requêtes du frontend React
-                    .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"]) // Méthodes HTTP autorisées
-                    .allowed_headers(vec![http::header::CONTENT_TYPE, http::header::AUTHORIZATION]) // En-têtes autorisés
-                    .max_age(3600), // Durée de validité des pré-requêtes
-            )
-            .service(
-                web::scope("/auth") // Ajoute un préfixe pour toutes les routes du module `auth`
-                    .configure(routes::auth::config),
-            )
-            .configure(routes::admin::config) // Routes pour l'administration
-    })
-    .bind("127.0.0.1:8080")? // Démarrer le serveur sur le port 8080
-    .run()
-    .await
+fn main() -> anyhow::Result<()> {
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        println!("Not Enought Argument !!! \n arg = {:?}", args);
+    }
+    match args[1].as_ref() {
+        "test" => println!("matching Test concluant"),
+        "get_pod" => info::pods()?,
+        "get_namespaces" => info::namespace()?,
+        "get_logs" => logs::get_logs(args[2].clone())?,
+        "spawn_namespace" => spawner::spawn_namespace(args[2].clone())?,
+        "spawn_pod" => spawner::spawn_pod(args[2].clone())?,
+        "del_namespace" => delete::del_namespace(args[2].clone())?,
+        "del_pod" => delete::del_pod(args[2].clone())?,
+        "deploy" => spawner::deployment(args[2].clone(), args[3].clone())?,
+        "exec" => spawner::exec_cmd_pod(args[2].clone())?,
+        //"policy" => policy::main ()?;
+        //"describe" => describe_node::describe()?,
+        _ => println!("None Matched."),
+    };
+    Ok(())
 }
