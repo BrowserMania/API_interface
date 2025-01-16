@@ -87,10 +87,11 @@ async fn login(
     };
 
     // Générer un token JWT
-    let token = match jwt::create_token(&user.email) {
-        Ok(token) => token,
-        Err(_) => return HttpResponse::InternalServerError().body("Erreur lors de la génération du token"),
-    };
+    let token = match jwt::create_token(user.id) { // Passer l'ID utilisateur ici
+    Ok(token) => token,
+    Err(_) => return HttpResponse::InternalServerError().body("Erreur lors de la génération du token"),
+};
+
 
     // Retourner à la fois le token, le username et le rôle
     HttpResponse::Ok().json(serde_json::json!({
