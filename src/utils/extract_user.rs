@@ -4,7 +4,7 @@ use futures_util::future::{ok, LocalBoxFuture, Ready};
 use std::rc::Rc;
 
 use crate::utils::jwt;
-
+//Il vérifie que l'utilisateur est authentifié grâce au token JWT.
 pub struct ExtractUser;
 
 impl<S, B> Transform<S, ServiceRequest> for ExtractUser

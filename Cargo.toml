@@ -24,12 +24,12 @@ chrono = { version = "0.4", features = ["serde"] }
 bcrypt = "0.11" # Utilisation de la dernière version stable
 
 # Manipulation du temps avec support de Serde
-time = { version = "0.3", features = ["serde"] }
+#time = { version = "0.3", features = ["serde"] }
 
 # Gestion des JWT (JSON Web Tokens)
 jsonwebtoken = "8.2.0"
 serde_json = "1.0"
-tokio = { version = "1", features = ["full"] }
+#tokio = { version = "1", features = ["full"] }
 futures-util = "0.3"
 
 [[bin]]
