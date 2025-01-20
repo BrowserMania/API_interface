@@ -1,51 +1,99 @@
-name: analyse-semgrep
+name: CI/CD Pipeline
 
 on:
   push:
     branches:
-    - 'main'
+      - 'main'
 
 jobs:
- semgrep_scan_rust:
-    name: semgrep_rust
+  # Étape 1 : Analyse du code Rust avec Semgrep
+  semgrep_scan_rust:
+    name: Semgrep Rust Analysis
     runs-on: self-hosted
     steps:
-      - name: Checkout repo
+      - name: Checkout Repository
         uses: actions/checkout@v3
-      - name: fmt-2
+
+      - name: Format Code
         run: cargo fmt
-      - name: fmt
+
+      - name: Check Formatting
         run: cargo fmt --check
-      - name : change source
+
+      - name: Activate Semgrep
         run: source /home/runner-admin/semgrep/bin/activate
-      - name: Analyse semgrep 1
+
+      - name: Run Semgrep Rust Analysis
         run: semgrep --config "p/rust" .
- Semgrep_all:
+
+  # Étape 2 : Analyse générale avec Semgrep
+  semgrep_all:
     needs: semgrep_scan_rust
-    name: semgrep_all
+    name: Semgrep All Configurations
     runs-on: self-hosted
     continue-on-error: true
     steps:
-      - name: Checkout repo
+      - name: Checkout Repository
         uses: actions/checkout@v3
-      - name : change source
+
+      - name: Activate Semgrep
         run: source /home/runner-admin/semgrep/bin/activate
-      - name: test all
+
+      - name: Run Semgrep CI
         run: semgrep ci --config auto
- audit:
-    needs: Semgrep_all
-    name: audit-code
+
+  # Étape 3 : Audit des dépendances Rust
+  audit:
+    needs: semgrep_all
+    name: Rust Dependency Audit
     runs-on: self-hosted
     continue-on-error: true
     steps:
-      - name: cargo-audit
+      - name: Cargo Audit
         run: cargo audit
- clippy:
+
+  # Étape 4 : Analyse Clippy
+  clippy:
     needs: audit
-    name: clippy-code
+    name: Rust Clippy Analysis
     runs-on: self-hosted
     continue-on-error: true
     steps:
-      - name: Clippy-analyse
+      - name: Clippy Analysis
         run: cargo clippy
- 
+
+  # Étape 5 : Configuration de la base de données
+  setup_database:
+    name: Setup Database
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Start MySQL Service
+        uses: mysql-actions/setup-mysql@v2
+        with:
+          mysql-version: 8.0
+          mysql-database: brow2025
+          mysql-user: root
+          mysql-password: root
+
+      - name: Execute SQL Script
+        run: |
+          mysql -h 127.0.0.1 -u root -proot brow2025 < ./API/scripts/setup_db.sql
+
+      - name: Verify Tables
+        run: |
+          mysql -h 127.0.0.1 -u root -proot -e "USE brow2025; SHOW TABLES;"
+
+  # Étape finale : Tests du backend
+  test_backend:
+    needs: setup_database
+    name: Test Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Run Backend Tests
+        run: cargo test
