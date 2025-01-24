@@ -4,7 +4,7 @@ use crate::models::user::{User, RegisterForm};
 use crate::utils::hash;
 
 /// Route pour obtenir la liste des utilisateurs (accessible uniquement aux administrateurs)
-#[get("/admin/users")]
+#[get("/users")]
 async fn list_users(pool: web::Data<MySqlPool>) -> impl Responder {
     match sqlx::query_as::<_, User>("SELECT id, username, email, password, role_id, created_at FROM users")
         .fetch_all(pool.get_ref())
@@ -20,7 +20,7 @@ async fn list_users(pool: web::Data<MySqlPool>) -> impl Responder {
 
 
 /// Route pour ajouter un utilisateur en tant qu'administrateur
-#[post("/admin/create-user")]
+#[post("/create-user")]
 async fn create_user_as_admin(
     pool: web::Data<MySqlPool>,
     form: web::Json<RegisterForm>,
@@ -70,7 +70,7 @@ async fn create_user_as_admin(
 }
 
 /// Route pour mettre à jour les informations d'un utilisateur
-#[put("/admin/update-user/{id}")]
+#[put("/update-user/{id}")]
 async fn update_user_as_admin(
     pool: web::Data<MySqlPool>,
     path: web::Path<i32>,
@@ -117,7 +117,7 @@ async fn update_user_as_admin(
 
 
 /// Route pour supprimer un utilisateur (accessible uniquement aux administrateurs)
-#[post("/admin/delete-user/{id}")]
+#[post("/delete-user/{id}")]
 async fn delete_user_as_admin(
     pool: web::Data<MySqlPool>,
     path: web::Path<i32>,
