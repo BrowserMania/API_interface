@@ -30,4 +30,3 @@ INSERT IGNORE INTO roles (id, name) VALUES
 INSERT IGNORE INTO users (username, email, password, role_id) VALUES 
 ('adminuser', 'admin8@example.com', '$2b$04$s4urY49Pr3RtiJxL6eBQ.ey/ssPxhxq/ciXiHHokr8AFWmnoQZYLO', 1),
 ('badr', 'badr.moussaoui2@gmail.com', '$2b$04$c.G3L4yuM2inFVjchU1UKOe6tHrsp2.og8R8Hwx/6Yr/ZYJeVkwBq', 2);
-

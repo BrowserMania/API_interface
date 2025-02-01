@@ -3,7 +3,7 @@ use sqlx::MySqlPool;
 use crate::models::user::{User, RegisterForm};
 use crate::utils::hash;
 
-/// Route pour obtenir la liste des utilisateurs (accessible uniquement aux administrateurs)
+/// Route Route pour obtenir la liste des utilisateurs (accessible uniquement aux administrateurs)
 #[get("/users")]
 async fn list_users(pool: web::Data<MySqlPool>) -> impl Responder {
     match sqlx::query_as::<_, User>("SELECT id, username, email, password, role_id, created_at FROM users")
