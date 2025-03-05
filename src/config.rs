@@ -2,7 +2,7 @@ use std::env;
 use dotenvy::dotenv;
 
 
-/// Structure pour stocker la configuration de l'application
+/// Structure pour stocker la configuration
 #[derive(Debug)]
 pub struct Config {
     pub database_url: String,
