@@ -48,6 +48,10 @@ async fn main() -> std::io::Result<()> {
                 web::scope("/browser")
                     .configure(routes::browser::config),
             )
+            .service(
+                web::scope("/regle") // Nouvelles routes
+                    .configure(routes::regle::config),
+            )
     })
     .bind("127.0.0.1:8080")?
     .run()
