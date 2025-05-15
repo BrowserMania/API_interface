@@ -1,16 +1,16 @@
-mod db;
-mod models;
-mod routes;
-mod utils;
+mod db; 
+mod models; 
+mod routes; 
+mod utils; 
 mod config;
 
-use actix_cors::Cors;
-use actix_web::{http, middleware, App, HttpServer, web};
-use config::Config;
-use db::init_pool;
+use actix_cors::Cors; 
+use actix_web::{http, middleware, App, HttpServer, web}; 
+use config::Config; 
+use db::init_pool; 
 use utils::extract_user::ExtractUser;
 
-#[actix_web::main]
+#[actix_web::main] 
 async fn main() -> std::io::Result<()> {
     // Charger la configuration depuis le fichier .env
     let config = Config::from_env().expect("Erreur lors du chargement de la configuration");
@@ -18,6 +18,7 @@ async fn main() -> std::io::Result<()> {
     println!("Connexion à la base de données...");
     let pool = init_pool().await.expect("Impossible de se connecter à la base de données");
 
+    // Garde le même message même si on change l'adresse d'écoute
     println!("Démarrage du serveur sur http://127.0.0.1:8080");
 
     HttpServer::new(move || {
@@ -53,7 +54,7 @@ async fn main() -> std::io::Result<()> {
                     .configure(routes::regle::config),
             )
     })
-    .bind("127.0.0.1:8080")?
+    .bind("0.0.0.0:8080")?  // Changez ceci pour 0.0.0.0 mais gardez l'URL 127.0.0.1 pour le frontend
     .run()
     .await
 }

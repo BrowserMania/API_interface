@@ -1,0 +1,36 @@
+# Fichier .dockerignore amélioré
+
+# Dossiers de build et dépendances
+target/
+**/*.rs.bk
+
+# Répertoires de gestion de version
+.git/
+.github/
+
+# Environnements de développement
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Fichiers de documentation et scripts divers
+README.md
+*.md
+*.txt
+.gitignore
+
+# Fichiers temporaires et logs
+**/*.log
+**/*.tmp
+temp/*
+!temp/.gitkeep
+
+# Fichiers de configuration d'environnement de test
+.env.test
+.env.development
+
+# Garder les fichiers nécessaires
+!.env
+!scripts/
+!.sqlx/
