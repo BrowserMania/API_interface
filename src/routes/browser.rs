@@ -1,4 +1,4 @@
-use actix_web::{get, post, web, HttpResponse, Responder};
+use actix_web::{get, post, web, HttpResponse, Responder, HttpRequest, http};
 use sqlx::MySqlPool;
 use serde::{Deserialize, Serialize};
 use std::process::Command;
@@ -18,6 +18,7 @@ pub struct BrowserInfo {
     pub pod_id: String,
     pub username: String,
     pub browser_type: String,
+    pub browser_url: Option<String>, // URL pour accéder au navigateur
 }
 
 // Route pour instancier un navigateur sécurisé
@@ -57,13 +58,17 @@ async fn start_browser(
                 "jlesage/chrome:latest"
             };
 
-            // Créer le pod avec kubectl
+            // Nom du pod
+            let pod_name = format!("{}-browser", user.username);
+
+            // Créer le pod avec kubectl - avec les ports exposés pour VNC (6080)
             let pod_output = Command::new("kubectl")
                 .args([
                     "run", 
-                    &format!("{}-browser", user.username),
+                    &pod_name,
                     &format!("--image={}", image),
                     "--labels=app=browser,user-browser=true",
+                    "--port=6080", // Port VNC
                     "-n", 
                     &ns_name
                 ])
@@ -73,10 +78,44 @@ async fn start_browser(
                 println!("Erreur lors de la création du pod: {}", e);
             }
 
+            // Créer un service pour exposer le navigateur
+            let service_output = Command::new("kubectl")
+                .args([
+                    "expose", 
+                    "pod",
+                    &pod_name,
+                    "--name", &format!("{}-service", pod_name),
+                    "--port=5000",
+                    "--target-port=5000",
+                    "--type=NodePort",
+                    "-n", &ns_name
+                ])
+                .output();
+
+            if let Err(e) = service_output {
+                println!("Erreur lors de la création du service: {}", e);
+            }
+
+            // Obtenir le NodePort assigné
+            let node_port_output = Command::new("kubectl")
+                .args([
+                    "get", 
+                    "service",
+                    &format!("{}-service", pod_name),
+                    "-n", &ns_name,
+                    "--output=jsonpath={.spec.ports[0].nodePort}"
+                ])
+                .output();
+
+            // Utiliser la bonne adresse IP
+            let browser_url = Some("http://10.10.32.153:3000/".to_string());
+
             HttpResponse::Ok().json(serde_json::json!({
                 "message": "Navigateur lancé avec succès",
-                "pod_id": format!("{}-browser", user.username),
-                "browser_type": browser_request.browser_type
+                "pod_id": pod_name,
+                "browser_type": browser_request.browser_type,
+                "browser_url": browser_url,
+                "access_url": "/browser/access-browser/".to_string() + &user.username
             }))
         },
         Ok(None) => HttpResponse::Unauthorized().body("Utilisateur non trouvé"),
@@ -141,13 +180,18 @@ async fn list_browsers() -> impl Responder {
                                 pod_id: format!("{}-browser", username),
                                 username: username.to_string(),
                                 browser_type: "Firefox".to_string(),
+                                browser_url: None,
                             });
                         } else {
                             for pod in pods {
+                                // Utiliser la bonne adresse IP
+                                let browser_url = Some("http://10.10.32.153:3000/".to_string());
+                                
                                 browser_infos.push(BrowserInfo {
                                     pod_id: pod.to_string(),
                                     username: username.to_string(),
                                     browser_type: "Firefox".to_string(),
+                                    browser_url,
                                 });
                             }
                         }
@@ -167,11 +211,13 @@ async fn list_browsers() -> impl Responder {
                 pod_id: "admin-browser".to_string(),
                 username: "admin".to_string(),
                 browser_type: "Firefox".to_string(),
+                browser_url: Some("http://10.10.32.153:3000/".to_string()),
             },
             BrowserInfo {
                 pod_id: "test-browser".to_string(),
                 username: "test".to_string(),
                 browser_type: "Google Chrome".to_string(),
+                browser_url: Some("http://10.10.32.153:3000/".to_string()),
             }
         ];
         println!("Utilisation de données fictives");
@@ -181,9 +227,52 @@ async fn list_browsers() -> impl Responder {
     HttpResponse::Ok().json(browser_infos)
 }
 
+// Route pour accéder à l'interface du navigateur
+#[get("/access-browser/{username}")]
+async fn access_browser(
+    path: web::Path<String>,
+    req: HttpRequest,
+) -> impl Responder {
+    let username = path.into_inner();
+    
+    // Utiliser la bonne adresse IP
+    let browser_url = "http://10.10.32.153:3000/";
+    
+    // Créer un HTML qui intègre le navigateur dans un iframe
+    let html = format!(r#"
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Navigateur Sécurisé - {}</title>
+        <style>
+            body, html {{
+                margin: 0;
+                padding: 0;
+                height: 100%;
+                overflow: hidden;
+            }}
+            .browser-container {{
+                width: 100%;
+                height: 100vh;
+                border: none;
+            }}
+        </style>
+    </head>
+    <body>
+        <iframe src="{}" class="browser-container" allowfullscreen="true"></iframe>
+    </body>
+    </html>
+    "#, username, browser_url);
+    
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(html)
+}
+
 // Configuration des routes pour le module `browser`
 pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(start_browser);
     cfg.service(stop_browser);
     cfg.service(list_browsers);
+    cfg.service(access_browser); // Nouvel endpoint
 }

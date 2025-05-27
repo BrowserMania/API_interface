@@ -3,6 +3,7 @@ use sqlx::MySqlPool;
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 use std::collections::HashMap;
+use std::path::Path;
 
 #[derive(Serialize, Deserialize)]
 pub struct TrafficRule {
@@ -21,6 +22,59 @@ pub struct NetworkPolicyInfo {
     pub rule_type: String,
     pub host: Option<String>,
     pub port: Option<i32>,
+}
+
+// Fonction utilitaire pour extraire l'hôte d'un egress
+fn extract_host(json: &serde_json::Value, egress_index: usize) -> Option<String> {
+    if let Some(egress) = json["spec"]["egress"].as_array() {
+        if egress.len() > egress_index {
+            if let Some(to_fqdns) = egress[egress_index]["toFQDNs"].as_array() {
+                if !to_fqdns.is_empty() {
+                    // Utiliser matchName s'il existe, sinon matchPattern
+                    if let Some(name) = to_fqdns[0]["matchName"].as_str() {
+                        return Some(name.to_string());
+                    } else if let Some(pattern) = to_fqdns[0]["matchPattern"].as_str() {
+                        // Enlever le préfixe "*." si présent
+                        return Some(pattern.trim_start_matches("*.").to_string());
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+// Fonction utilitaire pour extraire le port d'un egress
+fn extract_port(json: &serde_json::Value, egress_index: usize) -> Option<i32> {
+    if let Some(egress) = json["spec"]["egress"].as_array() {
+        if egress.len() > egress_index {
+            if let Some(to_ports) = egress[egress_index]["toPorts"].as_array() {
+                if !to_ports.is_empty() {
+                    if let Some(ports) = to_ports[0]["ports"].as_array() {
+                        if !ports.is_empty() {
+                            return ports[0]["port"].as_str()
+                                .and_then(|p| p.parse::<i32>().ok());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+// Fonction utilitaire pour déterminer le type de règle
+fn determine_rule_type(json: &serde_json::Value) -> String {
+    if let Some(egress) = json["spec"]["egress"].as_array() {
+        if egress.len() >= 2 { // Le premier est pour DNS, le second pour les règles
+            if let Some(to_fqdns) = egress[1]["toFQDNs"].as_array() {
+                if !to_fqdns.is_empty() {
+                    return "deny".to_string(); // S'il y a des toFQDNs dans le second egress, c'est une règle deny
+                }
+            }
+        }
+    }
+    "allow".to_string() // Par défaut
 }
 
 // Route pour récupérer toutes les règles de trafic
@@ -50,108 +104,10 @@ async fn list_rules() -> impl Responder {
                     
                     // Parser le JSON pour extraire les informations
                     if let Ok(json) = serde_json::from_str::<serde_json::Value>(&details_str) {
-                        // Déterminer le type de règle (deny ou allow)
-                        // Déterminer le type de règle (deny ou allow)
-let rule_type = if let Some(egress) = json["spec"]["egress"].as_array() {
-    if egress.len() >= 2 { // Le premier est pour DNS, le second pour les règles
-        if let Some(to_fqdns) = egress[1]["toFQDNs"].as_array() {
-            if !to_fqdns.is_empty() {
-                // S'il y a des toFQDNs dans le second egress, c'est une règle deny
-                "deny"
-            } else {
-                "allow"
-            }
-        } else {
-            "allow"
-        }
-    } else {
-        "allow"
-    }
-} else {
-    "allow"
-};
-
-// Essayer d'extraire l'hôte (FQDN)
-let host = if let Some(egress) = json["spec"]["egress"].as_array() {
-    if egress.len() >= 2 { // Vérifier le second egress (le premier est pour DNS)
-        if let Some(to_fqdns) = egress[1]["toFQDNs"].as_array() {
-            if !to_fqdns.is_empty() {
-                // Utiliser matchName s'il existe, sinon matchPattern
-                if let Some(name) = to_fqdns[0]["matchName"].as_str() {
-                    Some(name.to_string())
-                } else if let Some(pattern) = to_fqdns[0]["matchPattern"].as_str() {
-                    // Enlever le préfixe "*." si présent
-                    Some(pattern.trim_start_matches("*.").to_string())
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    } else {
-        None
-    }
-} else {
-    None
-};
-
-// Essayer d'extraire le port
-let port = if let Some(egress) = json["spec"]["egress"].as_array() {
-    if egress.len() >= 2 { // Vérifier le second egress
-        if let Some(to_ports) = egress[1]["toPorts"].as_array() {
-            if !to_ports.is_empty() {
-                if let Some(ports) = to_ports[0]["ports"].as_array() {
-                    if !ports.is_empty() {
-                        ports[0]["port"].as_str()
-                            .and_then(|p| p.parse::<i32>().ok())
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    } else {
-        None
-    }
-} else {
-    None
-};
-                        // Essayer d'extraire le port
-                        let port = if let Some(egress) = json["spec"]["egress"].as_array() {
-                            if !egress.is_empty() {
-                                if let Some(to_ports) = egress[0]["toPorts"].as_array() {
-                                    if !to_ports.is_empty() {
-                                        if let Some(ports) = to_ports[0]["ports"].as_array() {
-                                            if !ports.is_empty() {
-                                                ports[0]["port"].as_str()
-                                                    .and_then(|p| p.parse::<i32>().ok())
-                                            } else {
-                                                None
-                                            }
-                                        } else {
-                                            None
-                                        }
-                                    } else {
-                                        None
-                                    }
-                                } else {
-                                    None
-                                }
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        };
+                        // Utiliser les fonctions utilitaires pour extraire les informations
+                        let rule_type = determine_rule_type(&json);
+                        let host = extract_host(&json, 1).or_else(|| extract_host(&json, 0));
+                        let port = extract_port(&json, 1).or_else(|| extract_port(&json, 0));
                         
                         // Essayer d'extraire la description depuis les annotations
                         let description = json["metadata"]["annotations"]["description"].as_str()
@@ -161,7 +117,7 @@ let port = if let Some(egress) = json["spec"]["egress"].as_array() {
                         rules.push(NetworkPolicyInfo {
                             name: policy.to_string(),
                             description,
-                            rule_type: rule_type.to_string(),
+                            rule_type,
                             host,
                             port,
                         });
@@ -235,67 +191,10 @@ async fn get_rule(path: web::Path<String>) -> impl Responder {
                 // Parser le JSON retourné par kubectl
                 match serde_json::from_str::<serde_json::Value>(&details_str) {
                     Ok(policy_json) => {
-                        // Déterminer le type de règle (deny ou allow)
-                        let rule_type = if let Some(egress) = policy_json["spec"]["egress"].as_array() {
-                            if !egress.is_empty() {
-                                if let Some(action) = egress[0]["action"].as_str() {
-                                    if action == "Deny" { "deny" } else { "allow" }
-                                } else {
-                                    "allow" // Par défaut
-                                }
-                            } else {
-                                "allow" // Par défaut si egress est vide
-                            }
-                        } else {
-                            "allow" // Par défaut si pas d'egress
-                        };
-                        
-                        // Essayer d'extraire l'hôte (FQDN)
-                        let host = if let Some(egress) = policy_json["spec"]["egress"].as_array() {
-                            if !egress.is_empty() {
-                                if let Some(fqdns) = egress[0]["toFQDNs"].as_array() {
-                                    if !fqdns.is_empty() {
-                                        fqdns[0]["matchName"].as_str().map(|s| s.to_string())
-                                    } else {
-                                        None
-                                    }
-                                } else {
-                                    None
-                                }
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        };
-                        
-                        // Essayer d'extraire le port
-                        let port = if let Some(egress) = policy_json["spec"]["egress"].as_array() {
-                            if !egress.is_empty() {
-                                if let Some(to_ports) = egress[0]["toPorts"].as_array() {
-                                    if !to_ports.is_empty() {
-                                        if let Some(ports) = to_ports[0]["ports"].as_array() {
-                                            if !ports.is_empty() {
-                                                ports[0]["port"].as_str()
-                                                    .and_then(|p| p.parse::<i32>().ok())
-                                            } else {
-                                                None
-                                            }
-                                        } else {
-                                            None
-                                        }
-                                    } else {
-                                        None
-                                    }
-                                } else {
-                                    None
-                                }
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        };
+                        // Utiliser les fonctions utilitaires
+                        let rule_type = determine_rule_type(&policy_json);
+                        let host = extract_host(&policy_json, 0);
+                        let port = extract_port(&policy_json, 0);
                         
                         // Essayer d'extraire la description depuis les annotations
                         let description = policy_json["metadata"]["annotations"]["description"].as_str()
@@ -305,7 +204,7 @@ async fn get_rule(path: web::Path<String>) -> impl Responder {
                         HttpResponse::Ok().json(NetworkPolicyInfo {
                             name: rule_name,
                             description,
-                            rule_type: rule_type.to_string(),
+                            rule_type,
                             host,
                             port,
                         })
@@ -334,8 +233,17 @@ async fn add_rule(rule: web::Json<TrafficRule>) -> impl Responder {
     // Créer un fichier YAML temporaire pour la règle
     let yaml_content = generate_network_policy_yaml(&rule);
     
-    // Écrire le contenu YAML dans un fichier temporaire
-    let temp_file = format!(".\\temp\\{}.yaml", rule.name);
+    // S'assurer que le répertoire temp existe
+    let temp_dir = "temp";
+    if !Path::new(temp_dir).exists() {
+        if let Err(e) = std::fs::create_dir_all(temp_dir) {
+            eprintln!("Erreur lors de la création du répertoire temp: {}", e);
+            return HttpResponse::InternalServerError().body("Erreur lors de la création du répertoire temporaire");
+        }
+    }
+    
+    // Utiliser un chemin compatible avec tous les OS
+    let temp_file = format!("{}/{}.yaml", temp_dir, rule.name);
     if let Err(e) = std::fs::write(&temp_file, yaml_content) {
         eprintln!("Erreur lors de l'écriture du fichier YAML: {}", e);
         return HttpResponse::InternalServerError().body("Erreur lors de la création du fichier de règle");
@@ -385,9 +293,18 @@ async fn update_rule(path: web::Path<String>, rule: web::Json<TrafficRule>) -> i
         return HttpResponse::InternalServerError().body("Erreur lors de la mise à jour de la règle");
     }
     
+    // S'assurer que le répertoire temp existe
+    let temp_dir = "temp";
+    if !Path::new(temp_dir).exists() {
+        if let Err(e) = std::fs::create_dir_all(temp_dir) {
+            eprintln!("Erreur lors de la création du répertoire temp: {}", e);
+            return HttpResponse::InternalServerError().body("Erreur lors de la création du répertoire temporaire");
+        }
+    }
+    
     // Créer une nouvelle règle avec les mêmes étapes que pour l'ajout
     let yaml_content = generate_network_policy_yaml(&rule);
-    let temp_file = format!(".\\temp\\{}.yaml", rule.name);
+    let temp_file = format!("{}/{}.yaml", temp_dir, rule.name);
     
     if let Err(e) = std::fs::write(&temp_file, yaml_content) {
         eprintln!("Erreur lors de l'écriture du fichier YAML: {}", e);
@@ -448,6 +365,7 @@ async fn delete_rule(path: web::Path<String>) -> impl Responder {
     }
 }
 
+// Génère le YAML pour une CiliumNetworkPolicy
 fn generate_network_policy_yaml(rule: &TrafficRule) -> String {
     let mut lines = Vec::new();
     

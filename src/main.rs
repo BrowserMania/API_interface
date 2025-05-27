@@ -27,12 +27,33 @@ async fn main() -> std::io::Result<()> {
             .wrap(middleware::Logger::default())
             .wrap(
                 Cors::default()
+                    // Autoriser multiple origines pour différents environnements
                     .allowed_origin("http://localhost:3000")
+                    .allowed_origin("http://127.0.0.1:3000")
+                    .allowed_origin("http://0.0.0.0:3000")
+                    .allowed_origin("http://localhost")
+                    .allowed_origin("http://127.0.0.1")
+                    .allowed_origin("https://browsermania.fr")
+                    .allowed_origin("http://browsermania.fr")
+                    // Autoriser les requêtes depuis les conteneurs Docker
+                    .allowed_origin_fn(|origin, _req_head| {
+                        // Autoriser toutes les origines localhost et 127.0.0.1 sur tous les ports
+                        origin.as_bytes().starts_with(b"http://localhost") ||
+                        origin.as_bytes().starts_with(b"http://127.0.0.1") ||
+                        origin.as_bytes().starts_with(b"http://0.0.0.0") ||
+                        // Autoriser les origines de conteneurs Docker (généralement 172.x.x.x)
+                        origin.as_bytes().starts_with(b"http://172.") ||
+                        // Pour le développement, vous pouvez temporairement autoriser tout
+                        true // ATTENTION: À supprimer en production !
+                    })
                     .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
                     .allowed_headers(vec![
                         http::header::CONTENT_TYPE,
                         http::header::AUTHORIZATION,
+                        http::header::ACCEPT,
+                        http::header::ORIGIN,
                     ])
+                    .supports_credentials() // Nécessaire pour les cookies et l'authentification
                     .max_age(3600),
             )
             // Appliquer le middleware pour extraire l'utilisateur
