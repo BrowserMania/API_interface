@@ -3,6 +3,7 @@ mod models;
 mod routes; 
 mod utils; 
 mod config;
+mod k8s;
 
 use actix_cors::Cors; 
 use actix_web::{http, middleware, App, HttpServer, web}; 
