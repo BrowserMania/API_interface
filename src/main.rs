@@ -20,42 +20,42 @@ async fn main() -> std::io::Result<()> {
     let pool = init_pool().await.expect("Impossible de se connecter à la base de données");
 
     // Garde le même message même si on change l'adresse d'écoute
-    println!("Démarrage du serveur sur http://127.0.0.1:8080");
+    println!("Démarrage du serveur sur http://0.0.0.0:8080");
 
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(middleware::Logger::default())
-          .wrap(
-                Cors::default()
-                    .allowed_origin("http://localhost:3000")
-                    .allowed_origin("http://127.0.0.1:3000")
-                    .allowed_origin("http://0.0.0.0:3000")
-                    .allowed_origin("http://localhost")
-                    .allowed_origin("http://127.0.0.1")
-                    .allowed_origin("https://browsermania.fr")
-                    .allowed_origin("http://browsermania.fr")
-                    .allowed_origin_fn(|origin, _req_head| {
-                        origin.as_bytes().starts_with(b"http://localhost") ||
-                        origin.as_bytes().starts_with(b"http://127.0.0.1") ||
-                        origin.as_bytes().starts_with(b"http://0.0.0.0") ||
-                        origin.as_bytes().starts_with(b"http://172.") ||
-                        origin.as_bytes().starts_with(b"http://192.") ||
-                        origin.as_bytes().starts_with(b"http://10.") ||
-                        origin.as_bytes().starts_with(b"http://192.168.49.") ||
-                            origin.as_bytes().starts_with(b"http://192.168.49.") ||
-                        true // ATTENTION: À supprimer en production !
-                    })
-                    .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-                    .allowed_headers(vec![
-                        http::header::CONTENT_TYPE,
-                        http::header::AUTHORIZATION,
-                        http::header::ACCEPT,
-                        http::header::ORIGIN,
-                    ])
-                    .supports_credentials()
-                    .max_age(3600),
-            )
+         // .wrap(
+            //     Cors::default()
+            //         .allowed_origin("http://localhost:3000")
+            //         .allowed_origin("http://127.0.0.1:3000")
+            //         .allowed_origin("http://0.0.0.0:3000")
+            //         .allowed_origin("http://localhost")
+            //         .allowed_origin("http://127.0.0.1")
+            //         .allowed_origin("https://browsermania.fr")
+            //         .allowed_origin("http://browsermania.fr")
+            //         .allowed_origin_fn(|origin, _req_head| {
+            //             origin.as_bytes().starts_with(b"http://localhost") ||
+            //             origin.as_bytes().starts_with(b"http://127.0.0.1") ||
+            //             origin.as_bytes().starts_with(b"http://0.0.0.0") ||
+            //             origin.as_bytes().starts_with(b"http://172.") ||
+            //             origin.as_bytes().starts_with(b"http://192.") ||
+            //             origin.as_bytes().starts_with(b"http://10.") ||
+            //             origin.as_bytes().starts_with(b"http://192.168.49.") ||
+            //                 origin.as_bytes().starts_with(b"http://192.168.49.") ||
+            //             true // ATTENTION: À supprimer en production !
+            //         })
+            //         .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+            //         .allowed_headers(vec![
+            //             http::header::CONTENT_TYPE,
+            //             http::header::AUTHORIZATION,
+            //             http::header::ACCEPT,
+            //             http::header::ORIGIN,
+            //         ])
+            //         .supports_credentials()
+            //         .max_age(3600),
+            // ))
             // Appliquer le middleware pour extraire l'utilisateur
             .wrap(ExtractUser)
             .service(
